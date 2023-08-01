@@ -2,29 +2,41 @@ from datetime import date
 
 from framework.templator import render
 from patterns import Engine, Logger
+from routes import Router
+from debug import Debug
 
 site = Engine()
 logger = Logger('main')
+router = Router
+debug = Debug
 
 
+@router(url='/')
 class Index:
+    @Debug
     def __call__(self, request):
         return '200 OK', render('index.html', date=request.get('date', None))
 
 
+@router(url='/contacts/')
 class Contacts:
+    @Debug
     def __call__(self, request):
         return '200 OK', render('contacts.html')
 
 
+@router(url='/categories/')
 class CategoryList:
+    @Debug
     def __call__(self, request):
         logger.log('Список категорий')
         return '200 OK', render('categories.html',
                                 objects_list=site.categories)
 
 
+@router(url='/courses/')
 class CoursesList:
+    @Debug
     def __call__(self, request):
         logger.log('Список курсов')
         try:
@@ -40,6 +52,7 @@ class CoursesList:
                                     )
 
 
+@router(url='/create_category/')
 class CreateCategory:
     def __call__(self, request):
         if request.get('method') == 'POST':
@@ -65,6 +78,7 @@ class CreateCategory:
                                     categories=categories)
 
 
+@router(url='/create_course/')
 class CreateCourse:
     category_id = -1
 
