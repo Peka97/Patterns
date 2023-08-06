@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}
+	Главная
+{% endblock %}
+{% block body %}
+<div id="site_content">
+    <h1>Список студентов</h1>
+    {% for item in objects_list %}
+    <li>
+        {{item.name}}
+        {% for course in item.courses %}
+            {{course.name}}
+        {% endfor %}
+    </li>
+    {% endfor %}
+</div>
+{% endblock %}

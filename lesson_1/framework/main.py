@@ -15,19 +15,10 @@ class Framework:
         if not path.endswith('/'):
             path = f'{path}/'
 
-        if path in self.routes:
-            view = self.routes[path]
-        else:
-            view = StatusCode404NotFound()
-
         request = {}
-
-        for front in self.fronts:
-            front(request)
-
-        code, body = view(request)
         method = env['REQUEST_METHOD']
-        print('method', method)
+        request['method'] = method
+
         if method == 'GET':
             encode_params = Get.parse_input_data(env['QUERY_STRING'])
             request['params'] = decode_value(encode_params)
@@ -37,5 +28,14 @@ class Framework:
             request['data'] = decode_value(encode_data)
             print(f"POST | {request['data']}")
 
+        if path in self.routes:
+            view = self.routes[path]
+        else:
+            view = StatusCode404NotFound()
+
+        for front in self.fronts:
+            front(request)
+
+        code, body = view(request)
         start_response(code, [('Content-Type', 'text/html')])
         return [body.encode('utf-8')]

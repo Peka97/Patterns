@@ -1,9 +1,12 @@
 from copy import deepcopy
 from quopri import decodestring
 
+from framework.notifier import Subject
+
 
 class User:
-    pass
+    def __init__(self, name):
+        self.name = name
 
 
 class Teacher(User):
@@ -11,7 +14,9 @@ class Teacher(User):
 
 
 class Student(User):
-    pass
+    def __init__(self, name):
+        self.courses = []
+        super().__init__(name)
 
 
 class UserFactory:
@@ -21,8 +26,8 @@ class UserFactory:
     }
 
     @classmethod
-    def create(cls, type_):
-        return cls.types[type_]()
+    def create(cls, type_, name):
+        return cls.types[type_](name)
 
 
 class CoursePrototype:
@@ -31,12 +36,22 @@ class CoursePrototype:
         return deepcopy(self)
 
 
-class Course(CoursePrototype):
+class Course(CoursePrototype, Subject):
 
     def __init__(self, name, category):
         self.name = name
         self.category = category
         self.category.courses.append(self)
+        self.students = []
+        super().__init__()
+
+    def __getitem__(self, item):
+        return self.students[item]
+
+    def add_student(self, student: Student):
+        self.students.append(student)
+        student.courses.append(self)
+        self.notify()
 
 
 class InteractiveCourse(Course):
@@ -61,30 +76,26 @@ class CourseFactory:
 class Category:
     auto_id = 0
 
-    def __init__(self, name, category):
+    def __init__(self, name):
         self.id = Category.auto_id
         Category.auto_id += 1
         self.name = name
-        self.category = category
         self.courses = []
 
     def get_course_count(self):
-        result = len(self.courses)
-        if self.category:
-            result += self.category.get_course_count()
-        return result
+        return len(self.courses)
 
 
 class Engine:
     def __init__(self):
         self.teachers = []
-        self.students = []
-        self.courses = []
-        self.categories = []
+        self.students = [Student('Иванов Иван Иванович')]
+        self.categories = [Category('Языки')]
+        self.courses = [Course('Английский язык', self.categories[0])]
 
     @staticmethod
-    def create_user(type_):
-        return UserFactory.create(type_)
+    def create_user(type_, name):
+        return UserFactory.create(type_, name)
 
     @staticmethod
     def create_category(name, category=None):
@@ -107,35 +118,13 @@ class Engine:
                 return item
         return None
 
+    def get_student(self, name) -> Student:
+        for item in self.students:
+            if item.name == name:
+                return item
+
     @staticmethod
     def decode_value(val):
         val_b = bytes(val.replace('%', '=').replace("+", " "), 'UTF-8')
         val_decode_str = decodestring(val_b)
         return val_decode_str.decode('UTF-8')
-
-
-class SingletonByName(type):
-    def __init__(cls, name, bases, attrs, **kwargs):
-        super().__init__(name, bases, attrs)
-        cls.__instance = {}
-
-    def __call__(cls, *args, **kwargs):
-        if args:
-            name = args[0]
-        if kwargs:
-            name = kwargs['name']
-
-        if name in cls.__instance:
-            return cls.__instance[name]
-        else:
-            cls.__instance[name] = super().__call__(*args, **kwargs)
-            return cls.__instance[name]
-
-
-class Logger(metaclass=SingletonByName):
-    def __init__(self, name):
-        self.name = name
-
-    @staticmethod
-    def log(text):
-        print('log--->', text)

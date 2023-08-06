@@ -1,7 +1,11 @@
 from datetime import date
 
 from framework.templator import render
-from patterns import Engine, Logger
+
+from objects import Engine
+from framework.logger import Logger
+from framework.notifier import EmailNotifier, SmsNotifier
+from framework.views import ListView, CreateView
 from routes import Router
 from debug import Debug
 
@@ -9,23 +13,25 @@ site = Engine()
 logger = Logger('main')
 router = Router
 debug = Debug
+email_notifier = EmailNotifier()
+sms_notifier = SmsNotifier()
 
 
-@router(url='/')
+@router('/')
 class Index:
     @Debug
     def __call__(self, request):
         return '200 OK', render('index.html', date=request.get('date', None))
 
 
-@router(url='/contacts/')
+@router('/contacts/')
 class Contacts:
     @Debug
     def __call__(self, request):
         return '200 OK', render('contacts.html')
 
 
-@router(url='/categories/')
+@router('/categories/')
 class CategoryList:
     @Debug
     def __call__(self, request):
@@ -34,25 +40,24 @@ class CategoryList:
                                 objects_list=site.categories)
 
 
-@router(url='/courses/')
+@router('/courses/')
 class CoursesList:
     @Debug
     def __call__(self, request):
         logger.log('Список курсов')
         try:
-            category = site.find_category_by_id(
-                int(request['request_params']['id']))
+            # category = site.find_category_by_id(
+            #     int(request['request_params']['id']))
             return '200 OK', render('courses.html',
-                                    objects_list=category.courses,
-                                    name=category.name, id=category.id
-                                    )
+                                    objects_list=site.courses,
+                                    name=site.categories[0].name)
         except KeyError:
             return '200 OK', render('courses.html',
                                     error='<!> Нет ни одной категории. Отображение курсов невозможно <!>'
                                     )
 
 
-@router(url='/create_category/')
+@router('/create_category/')
 class CreateCategory:
     def __call__(self, request):
         if request.get('method') == 'POST':
@@ -78,7 +83,7 @@ class CreateCategory:
                                     categories=categories)
 
 
-@router(url='/create_course/')
+@router('/create_course/')
 class CreateCourse:
     category_id = -1
 
@@ -136,3 +141,41 @@ class CopyCourse:
             return '200 OK', render('course_list.html',
                                     error='<!> Нет ни одной категории. Создание курса невозможно <!>'
                                     )
+
+
+@router('/students/')
+class StudentListView(ListView):
+    queryset = site.students
+    template_name = 'students.html'
+
+
+@router('/create_student/')
+class StudentCreateView(CreateView):
+    template_name = 'create_student.html'
+
+    def create_obj(self, data: dict):
+        name = data['name']
+        name = site.decode_value(name)
+        new_obj = site.create_user('student', name)
+        print(f"NEW STUDENT {new_obj}")
+        site.students.append(new_obj)
+
+
+@router('/add_student/')
+class AddStudentByCourseCreateView(CreateView):
+    template_name = 'add_student.html'
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        context['courses'] = site.courses
+        context['students'] = site.students
+        return context
+
+    def create_obj(self, data: dict):
+        course_name = data['course_name']
+        course_name = site.decode_value(course_name)
+        course = site.get_course(course_name)
+        student_name = data['student_name']
+        student_name = site.decode_value(student_name)
+        student = site.get_student(student_name)
+        course.add_student(student)

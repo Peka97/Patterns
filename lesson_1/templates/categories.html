@@ -4,19 +4,19 @@
 {% endblock %}
 {% block body %}
     {% if error %}
-            <div id="site_content">
-                <h4>{{error}}</h4>
-            </div>
-        {% else %}
-            <div id="site_content">
-            <h1>Список категорий</h1>
-                <ul>
-                    {% for item in objects_list %}
-                    <li>
-                        {{item.name}} <span>Количество курсов: {{item.course_count()}}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
+        <div id="site_content">
+            <h4>{{error}}</h4>
+        </div>
+    {% else %}
+        <div id="site_content">
+        <h1>Список категорий</h1>
+            <ul>
+                {% for item in objects_list %}
+                <li>
+                    {{item.name}} <span>Количество курсов: {{item.get_course_count()}}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
     {% endif %}
 {% endblock %}

@@ -6,12 +6,11 @@
     {% if error %}
         <div id="site_content">
             <h4>{{error}}</h4>
+            <p>{{ objects_list }}</p>
         </div>
     {% else %}
     <div id="site_content">
-        <a href="/create-course/?id={{id}}">Создать новый курс</a>
-        <br>
-        <h1>Список курсов для категории "{{name}}"</h1>
+        <h1>Список курсов</h1>
         {% for item in objects_list %}
         <li>
             {{item.name}} <span><a href="/copy-course/?name={{item.name}}">скопировать</a></span>
