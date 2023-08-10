@@ -2,12 +2,14 @@ from datetime import date
 
 from framework.templator import render
 
-from objects import Engine
+from objects import Engine, MapperRegistry
 from framework.logger import Logger
 from framework.notifier import EmailNotifier, SmsNotifier
 from framework.views import ListView, CreateView
+from framework.unitofwork import UnitOfWork
 from routes import Router
 from debug import Debug
+
 
 site = Engine()
 logger = Logger('main')
@@ -15,6 +17,8 @@ router = Router
 debug = Debug
 email_notifier = EmailNotifier()
 sms_notifier = SmsNotifier()
+UnitOfWork.new_current()
+UnitOfWork.get_current().set_mapper_registry(MapperRegistry)
 
 
 @router('/')
@@ -145,8 +149,11 @@ class CopyCourse:
 
 @router('/students/')
 class StudentListView(ListView):
-    queryset = site.students
     template_name = 'students.html'
+
+    def get_queryset(self):
+        mapper = MapperRegistry.get_current_mapper('student')
+        return mapper.all()
 
 
 @router('/create_student/')
@@ -157,8 +164,9 @@ class StudentCreateView(CreateView):
         name = data['name']
         name = site.decode_value(name)
         new_obj = site.create_user('student', name)
-        print(f"NEW STUDENT {new_obj}")
         site.students.append(new_obj)
+        new_obj.mark_new()
+        UnitOfWork.get_current().commit()
 
 
 @router('/add_student/')
